@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.spatial.transform as scipy_rot
+import consts
 
 
 def check_q(q: np.ndarray) -> None:
@@ -61,6 +62,31 @@ def dq(q: np.ndarray, omega: np.ndarray) -> np.ndarray:  # 4x1
     xi = np.block([[top_block], [bot_block]])  # Eq. 16a
     assert xi.shape == (4, 3)
     return 0.5 * xi @ omega
+
+
+def q_to_rod(q: np.ndarray) -> np.ndarray:
+    """
+    Returns the Rodrigues vector of the given quaternion
+    """
+    check_q(q)
+    # Eq 20
+    return consts.f * pho(q) / (consts.a + q4(q))
+
+
+def rod_to_q(rod: np.ndarray) -> np.ndarray:
+    """
+    Returns the quaternion of the given Rodrigues vector
+    """
+    assert rod.shape == (3,)
+    # Eq 21
+    rod_norm_sq = np.linalg.norm(rod) ** 2
+    q4_r = -consts.a * rod_norm_sq + consts.f * np.sqrt(
+        consts.f**2 + (1 - consts.a) ** 2 * rod_norm_sq
+    ) / (consts.f**2 + rod_norm_sq)
+
+    pho_r = (consts.a + q4_r) * rod / consts.f
+
+    return np.array([pho_r[0], pho_r[1], pho_r[2], q4_r])
 
 
 def skew_sym(a: np.ndarray) -> np.ndarray:
