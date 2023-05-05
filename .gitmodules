@@ -1,0 +1,3 @@
+[submodule "Unscented-Orientation-Filter"]
+	path = Unscented-Orientation-Filter
+	url = https://github.com/rocketproplab/Unscented-Orientation-Filter.git
