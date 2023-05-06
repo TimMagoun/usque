@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.spatial.transform as scipy_rot
-from quat import q_to_rot, q_mul
+from quat import q_to_rod, q_to_rot, q_mul, rod_to_q
 
 
 def test_as_rot():
@@ -22,3 +22,10 @@ def test_multiplication():
     print(R12)
     print(R12_gt)
     assert np.allclose(R12, R12_gt)
+
+
+def test_rod():
+    q = np.random.randn(4)
+    q /= np.linalg.norm(q)
+    q2 = rod_to_q(q_to_rod(q))
+    assert np.allclose(q, q2), f"{q} != {q2}"
