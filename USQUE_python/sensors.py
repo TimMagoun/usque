@@ -12,10 +12,6 @@ def acc_read(q: np.ndarray) -> np.ndarray:
     return quat.q_to_rot(q) @ np.array([[0, 0, consts.g]]).T  # type: ignore # m/s^2
 
 
-def sim_acc_read(q: np.ndarray) -> np.ndarray:
-    return acc_read(q) + np.random.randn(3, 1) * consts.sig_acc
-
-
 def Qbar() -> np.ndarray:
     """
     Returns the Qbar matrix as described in Eq. 42
