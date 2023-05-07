@@ -21,8 +21,17 @@ def run_ukf(x0, P0, W, Y):
         # 1. Calculate sigma points
         Chi_k = np.zeros((2 * n + 1, n, 1))  # 13 x 6 sigma points
         Pk = P_p[k]
+
+        # # ! HACK: ensure positive definiteness
+        # Pk = (Pk + Pk.T) / 2 + 1e-6 * np.eye(6)
+
         Chi_k[0] = X_p[k]
-        sig_k = np.linalg.cholesky((n + lam) * (Pk + Qbar))  # Eq. 5a
+
+        mat = (n + lam) * (Pk + Qbar)
+        w, v = np.linalg.eig(Pk)
+        print(w)
+
+        sig_k = np.linalg.cholesky(mat)  # Eq. 5a
         for j in range(n):
             Chi_k[1 + j] = X_p[k] + sig_k[:, j : j + 1]  # sig_k column must be (6, 1)
             Chi_k[1 + j + n] = X_p[k] - sig_k[:, j : j + 1]
@@ -80,6 +89,8 @@ def run_ukf(x0, P0, W, Y):
         gamma = np.zeros((2 * n + 1, 3, 1))  # Eq 10, all simulated measurments
         for j in range(2 * n + 1):
             gamma[j] = sensors.acc_read(q_kp1_m[k + 1, j])
+
+        print(gamma)
 
         y_m = lam * gamma[0]
         y_m += 0.5 * np.sum(gamma[1:], axis=0)
@@ -144,12 +155,17 @@ def run_ukf(x0, P0, W, Y):
     # plt.show()
 
 
-# Initialize everything
-x0 = np.array([[0, 0, 0, 0.1, 0.1, 0.1]], dtype=DEFAULT_TYPE).T
-# P0 = diag([attitude err cov, bias err cov])
-P0 = np.eye(n, dtype=DEFAULT_TYPE) * 1e-4  # TODO double check
+if __name__ == "__main__":
+    data = np.load("data.npz")
+    # Initialize everything
+    x0 = np.array([[0, 0, 0, 0.1, 0.1, 0.1]], dtype=DEFAULT_TYPE).T
+    # P0 = diag([attitude err cov, bias err cov])
+    P0 = np.eye(n, dtype=DEFAULT_TYPE)  # TODO double check
 
-Y = np.zeros((N, 3, 1), dtype=DEFAULT_TYPE)  # IMU Accel observations
-W = np.ones((N, 3, 1), dtype=DEFAULT_TYPE)  # IMU Gyro observations
+    Y = data["noisy_acc"]  # IMU Accel observations
+    W = data["noisy_omega"]  # IMU Gyro observations
 
-run_ukf(x0, P0, Y, W)
+    assert Y.shape == (N, 3, 1)
+    assert W.shape == (N, 3, 1)
+
+    run_ukf(x0, P0, Y, W)

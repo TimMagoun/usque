@@ -28,7 +28,7 @@ def gen_data() -> Tuple:
     for i in range(3):
         acc_fn = scipy.interpolate.interp1d(
             np.arange(num_acc_steps + 1),
-            np.random.randn(num_acc_steps + 1),
+            np.random.randn(num_acc_steps + 1) * 1e-2,
             kind="zero",
         )
         gt_omega[:, i, 0] = cumulative_trapezoid(
@@ -61,3 +61,4 @@ def generate_and_save() -> None:
         noisy_omega=noisy_omega,
         noisy_acc=noisy_acc,
     )
+
