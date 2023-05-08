@@ -3,6 +3,7 @@ import numpy as np
 from quat import norm_q, q_to_rod, q_mul, q_inv, rod_to_q, prop_matrix, check_q
 import sensors
 from consts import n, lam, sig_acc, N
+from tqdm import tqdm
 
 np.set_printoptions(precision=4)
 DEFAULT_TYPE = np.float64
@@ -60,7 +61,9 @@ def run_ukf(x0, P0, W, Y):
         Chi_kp1_m[k + 1, :, 3:] = Chi_k[:, 3:]  # Eq. 38
         # Error quaternions in rodregues form, Chi_k+1, note: Chi_k_prop[0, :3] is always 0 (mean has no err)
         q_kp1_mean_inv = q_inv(q_kp1_m[k + 1, 0])
-        assert np.allclose(q_to_rod(q_mul(q_kp1_mean_inv, q_kp1_m[k + 1, 0])), np.array([[0, 0, 0]]).T)
+        assert np.allclose(
+            q_to_rod(q_mul(q_kp1_mean_inv, q_kp1_m[k + 1, 0])), np.array([[0, 0, 0]]).T
+        )
         for j in range(2 * n + 1):
             Chi_kp1_m[k + 1, j, :3] = q_to_rod(
                 q_mul(q_kp1_m[k + 1, j], q_kp1_mean_inv)
@@ -115,12 +118,10 @@ def run_ukf(x0, P0, W, Y):
 
         # Kalman gain
         K = Pxy @ np.linalg.inv(Pvv)  # Eq. 4
-        # ! Hack: what if K = 0
-        # K = np.zeros_like(K)
         # Calculate innovation
         v = y_k - y_m  # Eq. 3
-        print(f"y_k = {y_k}, y_m = {y_m}")
-        print(f"v = {v}")
+        # print(f"y_k = {y_k}, y_m = {y_m}")
+        # print(f"v = {v}")
         X_p[k + 1] = X_m[k + 1] + K @ v  # Eq. 2a
         P_p[k + 1] = P_m[k + 1] - K @ Pvv @ K.T  # Eq. 2b
         # Calculate q_p, transfers information from X_p to q_p
@@ -149,8 +150,7 @@ def run_ukf(x0, P0, W, Y):
 
     Qbar = sensors.Qbar()
     # Loop through measurements
-    for k in range(N - 1):  # N-1 measurements, N states
-        print(f"Iter: {k}")
+    for k in tqdm(range(N - 1)):  # N-1 measurements, N states
         # Propagate #
         propagate(k, W[k])
         # Update #

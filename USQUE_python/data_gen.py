@@ -10,11 +10,6 @@ from consts import N, dt, sig_gy_w, sig_gy_b, sig_acc
 import scipy
 from scipy.integrate import cumulative_trapezoid
 
-
-def sim_acc_read(q: np.ndarray) -> np.ndarray:
-    return acc_read(q) + np.random.randn(3, 1) * sig_acc
-
-
 def gen_data() -> Tuple:
     """
     Returns noisy gyro and accel, as well as GT attitude
@@ -49,22 +44,6 @@ def gen_data() -> Tuple:
     noisy_omega = gt_omega + np.random.randn(N, 3, 1) * sig_gy_w
     noisy_acc = np.zeros((N, 3, 1))
     for i in range(N):
-        noisy_acc[i] = sim_acc_read(gt_q[i])
+        noisy_acc[i] = acc_read(gt_q[i]) + np.random.randn(3, 1) * sig_acc
 
     return gt_q, gt_omega, gt_bias, noisy_omega, noisy_acc
-
-
-def generate_and_save() -> None:
-    gt_q, gt_omega, gt_bias, noisy_omega, noisy_acc = gen_data()
-    np.savez_compressed(
-        "data.npz",
-        gt_q=gt_q,
-        gt_omega=gt_omega,
-        gt_bias=gt_bias,
-        noisy_omega=noisy_omega,
-        noisy_acc=noisy_acc,
-    )
-
-
-if __name__ == "__main__":
-    generate_and_save()
