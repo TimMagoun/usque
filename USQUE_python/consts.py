@@ -11,9 +11,9 @@ n = 6
 g = 9.81  # m/s^2
 # Noise params for sensors
 # ! TODO: Find actual values
-sig_gy_b = 1e-2  # Gyro bias cov rad / s^(3/2)
-sig_gy_w = 1e-2  # Gyro white noise cov rad / s^(1/2)
-sig_acc = 1e-2  # Accel white noise cov m / s^(5/2)
+sig_gy_b = 1e-6  # Gyro bias cov rad / s^(3/2)
+sig_gy_w = 1e-6  # Gyro white noise cov rad / s^(1/2)
+sig_acc = 1e-5  # Accel white noise cov m / s^(5/2)
 
 # Sampling frequency of the IMU
 fs = 200.0  # Hz

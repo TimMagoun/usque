@@ -25,13 +25,14 @@ def run_ukf(x0, P0, W, Y):
         # # ! HACK: ensure positive definiteness
         # Pk = (Pk + Pk.T) / 2 + 1e-6 * np.eye(6)
 
-        Chi_k[0] = X_p[k]
-
         mat = (n + lam) * (Pk + Qbar)
         w, v = np.linalg.eig(Pk)
         print(w)
 
         sig_k = np.linalg.cholesky(mat)  # Eq. 5a
+        assert np.allclose(sig_k @ sig_k.T, mat)
+
+        Chi_k[0] = X_p[k]
         for j in range(n):
             Chi_k[1 + j] = X_p[k] + sig_k[:, j : j + 1]  # sig_k column must be (6, 1)
             Chi_k[1 + j + n] = X_p[k] - sig_k[:, j : j + 1]
@@ -90,8 +91,6 @@ def run_ukf(x0, P0, W, Y):
         for j in range(2 * n + 1):
             gamma[j] = sensors.acc_read(q_kp1_m[k + 1, j])
 
-        print(gamma)
-
         y_m = lam * gamma[0]
         y_m += 0.5 * np.sum(gamma[1:], axis=0)
         y_m *= 1.0 / (n + lam)  # Eq. 9
@@ -101,7 +100,7 @@ def run_ukf(x0, P0, W, Y):
         Pyy = lam * (gamma[0] - y_m) @ (gamma[0] - y_m).T
         for j in range(1, 2 * n + 1):
             Pyy += 0.5 * (gamma[j] - y_m) @ (gamma[j] - y_m).T
-
+        Pyy *= 1.0 / (n + lam)
         # Innovation cov
         Pvv = Pyy + np.eye(3) * sig_acc**2  # Eq. 12
 
@@ -109,6 +108,7 @@ def run_ukf(x0, P0, W, Y):
         Pxy = lam * (Chi_kp1_m[k + 1, 0] - X_m[k + 1]) @ (gamma[0] - y_m).T
         for j in range(1, 2 * n + 1):
             Pxy += 0.5 * (Chi_kp1_m[k + 1, j] - X_m[k + 1]) @ (gamma[j] - y_m).T
+        Pxy *= 1.0 / (n + lam)
 
         # Kalman gain
         K = Pxy @ np.linalg.inv(Pvv)  # Eq. 4
@@ -117,7 +117,6 @@ def run_ukf(x0, P0, W, Y):
         v = y_k - y_m  # Eq. 3
         X_p[k + 1] = X_m[k + 1] + K @ v  # Eq. 2a
         P_p[k + 1] = P_m[k + 1] - K @ Pvv @ K.T  # Eq. 2b
-
         # Calculate q_p, transfers information from X_p to q_p
         q_p[k + 1] = q_mul(rod_to_q(X_p[k + 1, :3]), q_kp1_m[k + 1, 0])  # Eq. 13
         # Set error quaternion part of X_p to 0
@@ -153,14 +152,15 @@ def run_ukf(x0, P0, W, Y):
 
     # plt.plot(q_p[:, 2], label="dp")
     # plt.show()
+    return q_p, P_p
 
 
 if __name__ == "__main__":
-    data = np.load("data.npz")
+    data = np.load("/home/tim/Documents/usque/USQUE_python/data.npz")
     # Initialize everything
-    x0 = np.array([[0, 0, 0, 0.1, 0.1, 0.1]], dtype=DEFAULT_TYPE).T
+    x0 = np.array([[0, 0, 0, 0, 0, 0]], dtype=DEFAULT_TYPE).T
     # P0 = diag([attitude err cov, bias err cov])
-    P0 = np.eye(n, dtype=DEFAULT_TYPE)  # TODO double check
+    P0 = np.eye(n, dtype=DEFAULT_TYPE) * 1e-1  # TODO double check
 
     Y = data["noisy_acc"]  # IMU Accel observations
     W = data["noisy_omega"]  # IMU Gyro observations

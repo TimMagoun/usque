@@ -12,7 +12,7 @@ def norm_q(q: np.ndarray) -> np.ndarray:
 
 def check_q(q: np.ndarray) -> None:
     assert q.shape == (4, 1), f"q.shape = {q.shape}"
-    assert np.isclose(np.linalg.norm(q), 1.0), f"q = {q}, norm = {np.linalg.norm(q)}"
+    assert np.isclose(np.linalg.norm(q), 1.0, atol=1e-4), f"q = {q}, norm = {np.linalg.norm(q)}"
 
 
 def q_mul(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:

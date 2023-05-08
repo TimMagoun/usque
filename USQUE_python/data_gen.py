@@ -12,7 +12,7 @@ from scipy.integrate import cumulative_trapezoid
 
 
 def sim_acc_read(q: np.ndarray) -> np.ndarray:
-    return acc_read(q) + np.random.randn(3, 1) * sig_acc
+    return acc_read(q) + np.random.randn(3, 1) * sig_acc * dt
 
 
 def gen_data() -> Tuple:
@@ -21,19 +21,20 @@ def gen_data() -> Tuple:
     """
 
     # Generate gt angular velocity
-    gt_bias_drift = np.random.randn(N, 3, 1) * sig_gy_b
+    gt_bias_drift = np.random.randn(N, 3, 1) * sig_gy_b * dt
     gt_bias = cumulative_trapezoid(gt_bias_drift, dx=dt, initial=0, axis=0)
     gt_omega = np.zeros((N, 3, 1))
     num_acc_steps = 5
     for i in range(3):
         acc_fn = scipy.interpolate.interp1d(
             np.arange(num_acc_steps + 1),
-            np.random.randn(num_acc_steps + 1) * 1e-2,
+            np.random.randn(num_acc_steps + 1) * 1e0,
             kind="zero",
         )
         gt_omega[:, i, 0] = cumulative_trapezoid(
             acc_fn(np.linspace(0, num_acc_steps, N)), dx=dt, initial=0, axis=0
         )
+    gt_omega += gt_bias
 
     # Generate gt attitude
     gt_q = np.zeros((N, 4, 1))
@@ -43,7 +44,7 @@ def gen_data() -> Tuple:
         # normalize
         gt_q[i] /= np.linalg.norm(gt_q[i])
 
-    noisy_omega = gt_omega + np.random.randn(N, 3, 1) * sig_gy_w
+    noisy_omega = gt_omega + np.random.randn(N, 3, 1) * sig_gy_w * dt
     noisy_acc = np.zeros((N, 3, 1))
     for i in range(N):
         noisy_acc[i] = sim_acc_read(gt_q[i])
@@ -62,3 +63,6 @@ def generate_and_save() -> None:
         noisy_acc=noisy_acc,
     )
 
+
+if __name__ == "__main__":
+    generate_and_save()
