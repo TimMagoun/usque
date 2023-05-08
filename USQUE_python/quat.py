@@ -59,7 +59,8 @@ def q_inv(q: np.ndarray) -> np.ndarray:
     check_q(q)
     q_inv = q.copy()
     q_inv[0:3, :] *= -1
-    return q_inv
+    
+    return norm_q(q_inv)
 
 
 # def qdot(q: np.ndarray, omega: np.ndarray) -> np.ndarray:  # 4x1
@@ -109,6 +110,7 @@ def prop_matrix(omega: np.ndarray) -> np.ndarray:
 
     Eq. 28
     """
+    assert omega.shape == (3, 1)
     omega_norm = np.linalg.norm(omega)
     if omega_norm == 0:
         return np.eye(4)

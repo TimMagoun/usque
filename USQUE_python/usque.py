@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 import numpy as np
-from quat import q_to_rod, q_mul, q_inv, rod_to_q, prop_matrix
+from quat import norm_q, q_to_rod, q_mul, q_inv, rod_to_q, prop_matrix, check_q
 import sensors
 from consts import n, lam, sig_acc, N
 
@@ -22,17 +22,15 @@ def run_ukf(x0, P0, W, Y):
         Chi_k = np.zeros((2 * n + 1, n, 1))  # 13 x 6 sigma points
         Pk = P_p[k]
 
-        # # ! HACK: ensure positive definiteness
-        # Pk = (Pk + Pk.T) / 2 + 1e-6 * np.eye(6)
-
         mat = (n + lam) * (Pk + Qbar)
-        w, v = np.linalg.eig(Pk)
-        print(w)
+        # w, v = np.linalg.eig(Pk)
+        # print(w)
 
         sig_k = np.linalg.cholesky(mat)  # Eq. 5a
         assert np.allclose(sig_k @ sig_k.T, mat)
 
         Chi_k[0] = X_p[k]
+        assert np.allclose(Chi_k[0, :3], np.zeros((3, 1)))
         for j in range(n):
             Chi_k[1 + j] = X_p[k] + sig_k[:, j : j + 1]  # sig_k column must be (6, 1)
             Chi_k[1 + j + n] = X_p[k] - sig_k[:, j : j + 1]
@@ -41,16 +39,20 @@ def run_ukf(x0, P0, W, Y):
         q_sample = np.zeros((2 * n + 1, 4, 1))
         for j in range(2 * n + 1):
             q_sample[j] = q_mul(rod_to_q(Chi_k[j, :3]), q_p[k])  # Eq. 32b
-
+            check_q(q_sample[j])
         # 3. Propagate sampled quaternions
         # q_prop = q_hat_k+1_minus
         omega_k = np.zeros((2 * n + 1, 3, 1))  # Sampled omegas based on sampled biases
+        assert w_k.shape == Chi_k[0, 3:].shape, f"{w_k.shape} {Chi_k[0, 3:].shape}"
+
         for j in range(2 * n + 1):
-            omega_k[j] = w_k - Chi_k[j : j + 1, 3:].T  # Eq. 35
+            omega_k[j] = w_k - Chi_k[j, 3:]  # Eq. 35
             # print(omega_k[j])
 
         for j in range(2 * n + 1):
+            # print(omega_k[j])
             q_kp1_m[k + 1, j] = prop_matrix(omega_k[j]) @ q_sample[j]  # Eq. 34
+            q_kp1_m[k + 1, j] = norm_q(q_kp1_m[k + 1, j])
             # print(q_sample_kp1[j])
 
         # 4. Convert propagated quaternions back into error quaternions in rodregues form
@@ -58,7 +60,8 @@ def run_ukf(x0, P0, W, Y):
         Chi_kp1_m[k + 1, :, 3:] = Chi_k[:, 3:]  # Eq. 38
         # Error quaternions in rodregues form, Chi_k+1, note: Chi_k_prop[0, :3] is always 0 (mean has no err)
         q_kp1_mean_inv = q_inv(q_kp1_m[k + 1, 0])
-        for j in range(1, 2 * n + 1):
+        assert np.allclose(q_to_rod(q_mul(q_kp1_mean_inv, q_kp1_m[k + 1, 0])), np.array([[0, 0, 0]]).T)
+        for j in range(2 * n + 1):
             Chi_kp1_m[k + 1, j, :3] = q_to_rod(
                 q_mul(q_kp1_m[k + 1, j], q_kp1_mean_inv)
             )  # Eq. 36, 37a, 37b
@@ -112,9 +115,12 @@ def run_ukf(x0, P0, W, Y):
 
         # Kalman gain
         K = Pxy @ np.linalg.inv(Pvv)  # Eq. 4
-
+        # ! Hack: what if K = 0
+        # K = np.zeros_like(K)
         # Calculate innovation
         v = y_k - y_m  # Eq. 3
+        print(f"y_k = {y_k}, y_m = {y_m}")
+        print(f"v = {v}")
         X_p[k + 1] = X_m[k + 1] + K @ v  # Eq. 2a
         P_p[k + 1] = P_m[k + 1] - K @ Pvv @ K.T  # Eq. 2b
         # Calculate q_p, transfers information from X_p to q_p
@@ -144,7 +150,7 @@ def run_ukf(x0, P0, W, Y):
     Qbar = sensors.Qbar()
     # Loop through measurements
     for k in range(N - 1):  # N-1 measurements, N states
-        print(k)
+        print(f"Iter: {k}")
         # Propagate #
         propagate(k, W[k])
         # Update #
@@ -168,4 +174,4 @@ if __name__ == "__main__":
     assert Y.shape == (N, 3, 1)
     assert W.shape == (N, 3, 1)
 
-    run_ukf(x0, P0, Y, W)
+    run_ukf(x0, P0, W, Y)
