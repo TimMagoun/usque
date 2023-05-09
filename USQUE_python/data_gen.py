@@ -10,6 +10,7 @@ from consts import N, dt, sig_gy_w, sig_gy_b, sig_acc
 import scipy
 from scipy.integrate import cumulative_trapezoid
 
+
 def gen_data() -> Tuple:
     """
     Returns noisy gyro and accel, as well as GT attitude

@@ -59,23 +59,8 @@ def q_inv(q: np.ndarray) -> np.ndarray:
     check_q(q)
     q_inv = q.copy()
     q_inv[0:3, :] *= -1
-    
+
     return norm_q(q_inv)
-
-
-# def qdot(q: np.ndarray, omega: np.ndarray) -> np.ndarray:  # 4x1
-#     """
-#     Find derivative of q given omega [wx, wy, xz] in body frame in rad/s
-
-#     Eq. 19
-#     """
-#     check_q(q)
-#     assert omega.shape == (3,)
-#     top_block = q4(q) + skew_sym(rho(q))
-#     bot_block = -rho(q)
-#     xi = np.block([[top_block], [bot_block]])  # Eq. 16a
-#     assert xi.shape == (4, 3)
-#     return 0.5 * xi @ omega
 
 
 def q_to_rod(q: np.ndarray) -> np.ndarray:
