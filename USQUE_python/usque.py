@@ -2,7 +2,7 @@
 import numpy as np
 from quat import norm_q, q_to_rod, q_mul, q_inv, rod_to_q, prop_matrix, check_q
 import sensors
-from consts import n, lam, sig_acc, N
+from consts import n, lam, sig_acc, N, sig_gy_b
 from tqdm import tqdm
 
 np.set_printoptions(precision=4)
@@ -22,7 +22,7 @@ def run_ukf(x0, P0, W, Y):
         # 1. Calculate sigma points
         Chi_k = np.zeros((2 * n + 1, n, 1))  # 13 x 6 sigma points
         Pk = P_p[k]
-
+            
         mat = (n + lam) * (Pk + Qbar)
         # w, v = np.linalg.eig(Pk)
         # print(w)
