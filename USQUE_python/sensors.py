@@ -9,7 +9,7 @@ def acc_read(q: np.ndarray) -> np.ndarray:
 
     :param q: quaternion representing R from w to b
     """
-    return quat.q_to_rot(q) @ np.array([[0, 0, consts.g]]).T  # type: ignore # m/s^2
+    return quat.q_to_rot(q).T @ np.array([[0, 0, consts.g]]).T  # type: ignore # m/s^2
 
 
 def Qbar() -> np.ndarray:

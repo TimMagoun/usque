@@ -2,6 +2,10 @@ import numpy as np
 import scipy.spatial.transform as scipy_rot
 import consts
 
+'''
+Q = XYZW!!
+'''
+
 
 def norm_q(q: np.ndarray) -> np.ndarray:
     """
