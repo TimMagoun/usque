@@ -1,7 +1,7 @@
 from numpy import pi
 
 # Type of IMU
-imu_grade = "tac"  # "tac" or "mem"
+imu_grade = "mem"  # "tac" or "mem"
 
 a = 1
 lam = 1
@@ -22,7 +22,7 @@ if imu_grade == "tac":
 elif imu_grade == "mem":
     sig_gy_b = 2e-3
     sig_gy_w = 0.7 / 60 / 180 * pi  # 0.7 deg / sqrt(hr)
-    sig_acc = 1e-4  # Accel white noise cov m / s / s^(1/2)
+    sig_acc = 5e-4  # Accel white noise cov m / s / s^(1/2)
 
 else:
     raise ValueError(f"imu_grade = {imu_grade} is not valid")
