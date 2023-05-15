@@ -2,7 +2,7 @@
 import numpy as np
 from quat import norm_q, q_to_rod, q_mul, q_inv, rod_to_q, prop_matrix, check_q
 import sensors
-from consts import n, lam, sig_acc, N, sig_gy_b
+from consts import n, lam, sig_acc, N
 from tqdm import tqdm
 
 np.set_printoptions(precision=4)
@@ -17,12 +17,12 @@ quaternion to propagate the state and covariance.
 """
 
 
-def run_ukf(x0, P0, W, Y):
+def run_ukf(x0, P0, W, Y, q0=np.array([[0, 0, 0, 1]]).T):
     def propagate(k: int, w_k: np.ndarray):
         # 1. Calculate sigma points
         Chi_k = np.zeros((2 * n + 1, n, 1))  # 13 x 6 sigma points
         Pk = P_p[k]
-            
+
         mat = (n + lam) * (Pk + Qbar)
         # w, v = np.linalg.eig(Pk)
         # print(w)
@@ -93,9 +93,12 @@ def run_ukf(x0, P0, W, Y):
         P_m[k + 1] += Qbar  # Eq. 8
 
     def update(k: int, y_k: np.ndarray):
-        gamma = np.zeros((2 * n + 1, 3, 1))  # Eq 10, all simulated measurments
+        # Convert everything into roll and pitch
+        y_k = sensors.a_to_rp(y_k)
+
+        gamma = np.zeros((2 * n + 1, 2, 1))  # Eq 10, all simulated measurments
         for j in range(2 * n + 1):
-            gamma[j] = sensors.acc_read(q_kp1_m[k + 1, j])
+            gamma[j] = sensors.a_to_rp(sensors.acc_read(q_kp1_m[k + 1, j]))
 
         y_m = lam * gamma[0]
         y_m += 0.5 * np.sum(gamma[1:], axis=0)
@@ -108,7 +111,7 @@ def run_ukf(x0, P0, W, Y):
             Pyy += 0.5 * (gamma[j] - y_m) @ (gamma[j] - y_m).T
         Pyy *= 1.0 / (n + lam)
         # Innovation cov
-        Pvv = Pyy + np.eye(3) * sig_acc**2  # Eq. 12
+        Pvv = Pyy + np.eye(2) * sig_acc**2  # Eq. 12
 
         # Cross cov
         Pxy = lam * (Chi_kp1_m[k + 1, 0] - X_m[k + 1]) @ (gamma[0] - y_m).T
@@ -143,7 +146,7 @@ def run_ukf(x0, P0, W, Y):
     P_m = np.zeros((N, n, n), dtype=DEFAULT_TYPE)  # Covariance estimates before update
     P_p[0] = P0
     q_p = np.zeros((N, 4, 1), dtype=DEFAULT_TYPE)  # Quaternion estimates after update
-    q_p[0, 3] = 1  # Initial is identity
+    q_p[0] = q0
     q_kp1_m = np.zeros(
         (N, 2 * n + 1, 4, 1), dtype=DEFAULT_TYPE
     )  # All sampled quaternions after propagation, used in the update step

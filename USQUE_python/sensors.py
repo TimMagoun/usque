@@ -12,6 +12,19 @@ def acc_read(q: np.ndarray) -> np.ndarray:
     return quat.q_to_rot(q).T @ np.array([[0, 0, consts.g]]).T  # type: ignore # m/s^2
 
 
+def a_to_rp(a: np.ndarray) -> np.ndarray:
+    """
+    Returns (2, 1) roll and pitch vector in global frame
+    """
+    a_norm = np.linalg.norm(a)
+    if a_norm == 0:
+        return np.array([[0, 0]]).T
+    else:
+        return np.array(
+            [[np.arctan2(a[1, 0], a[2, 0])], [np.arcsin(-a[0, 0] / a_norm)]]
+        )
+
+
 def Qbar() -> np.ndarray:
     """
     Returns the Qbar matrix as described in Eq. 42
