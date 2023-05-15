@@ -165,11 +165,11 @@ def run_ukf(x0, P0, W, Y, q0=np.array([[0, 0, 0, 1]]).T):
 
 
 if __name__ == "__main__":
-    data = np.load("/home/tim/Documents/usque/USQUE_python/data.npz")
+    data = np.load("data/mem.npz")
     # Initialize everything
     x0 = np.array([[0, 0, 0, 0, 0, 0]], dtype=DEFAULT_TYPE).T
     # P0 = diag([attitude err cov, bias err cov])
-    P0 = np.eye(n, dtype=DEFAULT_TYPE) * 1e-1  # TODO double check
+    P0 = np.eye(n, dtype=DEFAULT_TYPE) * 1e-1
 
     Y = data["noisy_acc"]  # IMU Accel observations
     W = data["noisy_omega"]  # IMU Gyro observations
